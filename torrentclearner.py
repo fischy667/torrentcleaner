@@ -2,12 +2,12 @@ import requests
 import json
 
 # Configuration
-sonarr_url = 'http://ip:port/api/v3/queue'
-sonarr_api_key = 'apikey'
+sonarr_url = 'http://<sonarr_host>:<sonarr_port>/api/v3/queue'
+sonarr_api_key = '<sonarr_api_key>'
 
-transmission_url = 'http://ip:^prt/transmission/rpc'
-transmission_username = 'user'  # If Transmission has authentication
-transmission_password = 'password'
+transmission_url = 'http://<transmission_host>:<transmission_port>/transmission/rpc'
+transmission_username = '<transmission_username>'
+transmission_password = '<transmission_password>'
 
 
 # Fetch the current Sonarr download queue
