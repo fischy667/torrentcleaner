@@ -39,12 +39,14 @@
 
 4. Configure the script by modifying the placeholders in the script:
     ```python
-    sonarr_url = 'http://<sonarr_host>:<sonarr_port>/api/v3/queue'
-    sonarr_api_key = '<sonarr_api_key>'
+    sonarr_host = 'XXXX'  # Update with your actual Sonarr host (e.g., 'localhost', '192.168.1.10', etc.)
+    sonarr_port = '8989'  # Update with the actual port where Sonarr is running
+    sonarr_url = f'http://{sonarr_host}:{sonarr_port}/api/v3/queue'
+    sonarr_api_key = 'XXXX'  # Replace with your actual Sonarr API key
 
-    transmission_url = 'http://<transmission_host>:<transmission_port>/transmission/rpc'
-    transmission_username = '<transmission_username>'
-    transmission_password = '<transmission_password>'
+    transmission_url = 'http://XXXX:9091/transmission/rpc'  # Replace with your Transmission host and port
+    transmission_username = 'username'  # If Transmission has authentication
+    transmission_password = 'password'
     ```
 
 ## Usage
