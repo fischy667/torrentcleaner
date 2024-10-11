@@ -22,14 +22,14 @@
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/yourusername/TorrentCleaner.git
+    git clone https://github.com/adelatour11/torrentcleaner.git
     cd TorrentCleaner
     ```
 
 2. Install the required dependencies:
 
     ```bash
-    pip install -r requirements.txt
+    pip install requests
     ```
 
 3. Set up your environment variables (or hardcode the values in the script):
@@ -37,7 +37,6 @@
     - Transmission username and password (if authentication is required)
     - Hostnames and ports for Sonarr and Transmission
 
-4. Configure the script by modifying the placeholders in the script:
     ```python
     sonarr_host = 'XXXX'  # Update with your actual Sonarr host (e.g., 'localhost', '192.168.1.10', etc.)
     sonarr_port = '8989'  # Update with the actual port where Sonarr is running
@@ -56,7 +55,7 @@ Once configured, you can run the script to automatically check for torrents with
 1. Run the script:
 
     ```bash
-    python torrent_cleaner.py
+    python sonarr_queue_clearner.py
     ```
 
 2. The script will:
@@ -67,9 +66,9 @@ Once configured, you can run the script to automatically check for torrents with
 ## Example Output
 
 ```bash
-Checking torrent contents for: TVShowtitle.S02E08
-Identified suspicious file: malware.lnk. Removing torrent...
-Successfully removed torrent XXXXX and deleted its files.
+Checking torrent contents for: TVShow.S02E08
+Identified suspicious file: TVShow.S02E08/TVShow.S02E08.zipx. Marking download for removal...
+Successfully removed download XXXX from Sonarr's queue.
 ```
 
 ## Customization
