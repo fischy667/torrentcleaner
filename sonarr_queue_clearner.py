@@ -61,12 +61,12 @@ qb = get_qbittorrent_login()
     
 # Ensure 'downloads' is now a list of records
 if isinstance(downloads, list):
-    # Iterate through downloads and get torrent file details from Transmission
+    # Iterate through downloads and get torrent file details from qBittorrent
     for download in downloads:
         download_id = download['downloadId']  # This is the torrent hash
         series_title = download['title']
         
-        # Fetch torrent file list from Transmission
+        # Fetch torrent file list from qBittorrent
         torrent_files = get_torrent_files(qb, download_id)
         
         if torrent_files:
