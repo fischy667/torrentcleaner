@@ -1,41 +1,43 @@
 # TorrentCleaner
 
-**TorrentCleaner** is a Python script that automates the process of identifying and removing torrents that contain suspicious files (like `.zipx` or `.lnk`) from your Transmission download client. This ensures that unwanted or potentially harmful files are filtered out and deleted during the download process, keeping your system clean.
+**TorrentCleaner** is a Python script that automates the process of identifying and removing torrents that contain suspicious files (like `.zipx` or `.lnk`) from your qBittorrent download client. This ensures that unwanted or potentially harmful files are filtered out and deleted during the download process, keeping your system clean.
 
 ## Features
 
 - Fetches the list of torrents from **Sonarr**'s queue.
-- Identifies torrents managed by **Transmission**.
+- Identifies torrents managed by **qBittorrent**.
 - Inspects torrent contents to find suspicious file extensions (`.zipx` or `.lnk`).
 - Automatically removes torrents containing suspicious files.
-- Deletes associated files on disk using Transmission's API.
+- Deletes associated files on disk using qBittorrent's API.
 
 ## Requirements
 
 - **Sonarr** API key and URL
-- **Transmission** URL and credentials (if required)
+- **qBittorrent** URL and credentials (if required)
 - Python 3.x
-- Python packages: `requests`
+- Python packages:
+   - `requests`
+   - `python-qbittorrent`
 
 ## Installation
 
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/adelatour11/torrentcleaner.git
+    git clone https://github.com/fischy667/torrentcleaner.git
     cd TorrentCleaner
     ```
 
 2. Install the required dependencies:
 
     ```bash
-    pip install requests
+    pip install requests python-qbittorrent
     ```
 
 3. Set up your environment variables (or hardcode the values in the script):
     - Sonarr API key
-    - Transmission username and password (if authentication is required)
-    - Hostnames and ports for Sonarr and Transmission
+    - qBittorrent username and password (if authentication is required)
+    - Hostnames and ports for Sonarr and qBittorrent
 
     ```python
     sonarr_host = 'XXXX'  # Update with your actual Sonarr host (e.g., 'localhost', '192.168.1.10', etc.)
@@ -43,14 +45,15 @@
     sonarr_url = f'http://{sonarr_host}:{sonarr_port}/api/v3/queue'
     sonarr_api_key = 'XXXX'  # Replace with your actual Sonarr API key
 
-    transmission_url = 'http://XXXX:9091/transmission/rpc'  # Replace with your Transmission host and port
-    transmission_username = 'username'  # If Transmission has authentication
-    transmission_password = 'password'
+    qbit_url = 'http://xxxx:8080'  # Replace with your qBittorrent host and port
+    qbit_password_needed = False # Is password needed? e.g. bypass localhost, ...
+    qbit_username = 'username'  # If qBittorrent has authentication
+    qbit_password = 'password'
     ```
 
 ## Usage
 
-Once configured, you can run the script to automatically check for torrents with `.zipx` or `.lnk` files and remove them from Transmission.
+Once configured, you can run the script to automatically check for torrents with `.zipx` or `.lnk` files and remove them from qBittorrent.
 
 1. Run the script:
 
