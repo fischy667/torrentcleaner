@@ -6,7 +6,7 @@ from qbittorrent import Client
 sonarr_host = 'xxxx'  # Update with your actual Sonarr host (e.g., 'localhost', '192.168.1.10', etc.)
 sonarr_port = '8989'  # Update with the actual port where Sonarr is running
 sonarr_url = f'http://{sonarr_host}:{sonarr_port}/api/v3/queue'
-sonarr_api_key = '17d506941e844f1cb2011f40aeb22ade'  # Replace with your actual Sonarr API key
+sonarr_api_key = '<api_key>'  # Replace with your actual Sonarr API key
 
 qbit_url = 'http://xxxx:8080'  # Replace with your qBittorrent host and port
 qbit_password_needed = False # Is password needed? e.g. No password set, bypass localhost, ...
