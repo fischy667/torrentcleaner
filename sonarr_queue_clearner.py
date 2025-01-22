@@ -11,13 +11,39 @@ transmission_url = 'http://XXXX:9091/transmission/rpc'  # Replace with your Tran
 transmission_username = 'username'  # If Transmission has authentication
 transmission_password = 'password'
 
-# Fetch the current Sonarr download queue
-sonarr_headers = {'X-Api-Key': sonarr_api_key}
-response = requests.get(sonarr_url, headers=sonarr_headers)
-downloads_data = response.json()
+# Configuration for Radarr
+radarr_host = 'localhost'  # Update with your actual Radarr host
+radarr_port = '7878'  # Update with the actual port where Radarr is running
+radarr_url = f'http://{radarr_host}:{radarr_port}/api/v3/queue'
+radarr_api_key = 'XXXX'  # Replace with your actual Radarr API key
 
-# Now access the 'records' key from the response, which contains the actual download records
-downloads = downloads_data.get('records', [])
+# Function to fetch the download queue for Sonarr or Radarr
+def fetch_queue(api_url, api_key):
+    headers = {'X-Api-Key': api_key}
+    response = requests.get(api_url, headers=headers)
+    return response.json()
+
+# Function to remove and block a download in Sonarr or Radarr
+def remove_and_block_download(api_url, api_key, download_id, block_torrent=False):
+    params = {
+        'removeFromClient': True,
+        'blocklist': block_torrent,  # Block the torrent if set to True
+        'skipRedownload': True  # If True, skips re-downloading
+    }
+
+    delete_url = f'{api_url}/{download_id}'
+    headers = {
+        'X-Api-Key': api_key,
+        'Content-Type': 'application/json'
+    }
+
+    response = requests.delete(delete_url, headers=headers, params=params)
+    
+    if response.status_code == 200:
+        print(f"Successfully removed download {download_id} from queue.")
+    else:
+        # Print detailed error response for debugging
+        print(f"Failed to remove download {download_id}. Response: {response.status_code} - {response.text}")
 
 # Function to get the Transmission session ID (if necessary)
 def get_transmission_session_id():
@@ -59,65 +85,49 @@ def get_torrent_files(transmission_session_id, torrent_hash):
         print(f"Error fetching torrent files: {response.text}")
         return None
 
-# Function to delete the download from Sonarr's queue and optionally block it
-def remove_and_block_download(sonarr_download_id, block_torrent=False):
-    # Set the query parameters for the DELETE request
-    params = {
-        'removeFromClient': True,
-        'blocklist': block_torrent,  # Block the torrent if set to True
-        'skipRedownload': True  # If True, skips re-downloading
-    }
-    
-    # Send the DELETE request to remove the torrent
-    delete_url = f'http://{sonarr_host}:{sonarr_port}/api/v3/queue/{sonarr_download_id}'
-    headers = {
-        'X-Api-Key': sonarr_api_key,
-        'Content-Type': 'application/json'
-    }
-
-    response = requests.delete(delete_url, headers=headers, params=params)
-    
-    if response.status_code == 200:
-        print(f"Successfully removed download {sonarr_download_id} from Sonarr's queue.")
-    else:
-        # Print detailed error response for debugging
-        print(f"Failed to remove download {sonarr_download_id}. Response: {response.status_code} - {response.text}")
-
 # Get the initial Transmission session ID
 transmission_session_id = get_transmission_session_id()
 
-# Ensure 'downloads' is now a list of records
-if isinstance(downloads, list):
-    # Iterate through downloads and get torrent file details from Transmission
-    for download in downloads:
-        download_id = download['downloadId']  # This is the torrent hash
-        series_title = download['title']
-        
-        # Fetch torrent file list from Transmission
-        torrent_files = get_torrent_files(transmission_session_id, download_id)
-        
-        if torrent_files:
-            print(f"Checking torrent contents for: {series_title}")
-            remove_torrent_flag = False  # Flag to indicate if the torrent should be marked for removal
+# Fetch and process Sonarr and Radarr queues
+for app_name, api_url, api_key in [
+    ('Sonarr', sonarr_url, sonarr_api_key),
+    ('Radarr', radarr_url, radarr_api_key)
+]:
+    downloads_data = fetch_queue(api_url, api_key)
+    downloads = downloads_data.get('records', [])
 
-            # Check each file in the torrent
-            for torrent in torrent_files:
-                for file in torrent['files']:
-                    filename = file['name']
+    if isinstance(downloads, list):
+        # Iterate through downloads and get torrent file details from Transmission
+        for download in downloads:
+            download_id = download['downloadId']  # This is the torrent hash
+            title = download['title']
+            
+            # Fetch torrent file list from Transmission
+            torrent_files = get_torrent_files(transmission_session_id, download_id)
+            
+            if torrent_files:
+                print(f"Checking torrent contents for: {title}")
+                remove_torrent_flag = False  # Flag to indicate if the torrent should be marked for removal
+
+                # Check each file in the torrent
+                for torrent in torrent_files:
+                    for file in torrent['files']:
+                        filename = file['name']
+                        
+                        # Check if the file extension is .zipx or .lnk
+                        if filename.endswith('.zipx') or filename.endswith('.lnk') or filename.endswith('.arj'):
+                            print(f"Identified suspicious file: {filename}. Marking download for removal...")
+                            remove_torrent_flag = True
+                            break  # Exit the loop since we found a file to trigger removal
                     
-                    # Check if the file extension is .zipx or .lnk
-                    if filename.endswith('.zipx') or filename.endswith('.lnk'):
-                        print(f"Identified suspicious file: {filename}. Marking download for removal...")
-                        remove_torrent_flag = True
-                        break  # Exit the loop since we found a file to trigger removal
-                
-                if remove_torrent_flag:
-                    break
+                    if remove_torrent_flag:
+                        break
 
-            # If a suspicious file was found, remove the torrent from Sonarr and block it
-            if remove_torrent_flag:
-                remove_and_block_download(download['id'], block_torrent=True)
-        else:
-            print(f"Failed to fetch torrent info for {series_title}")
-else:
-    print("Unexpected data structure from Sonarr API. Expected a list.")
+                # If a suspicious file was found, remove the torrent and block it
+                if remove_torrent_flag:
+                    remove_and_block_download(api_url, api_key, download['id'], block_torrent=True)
+            else:
+                print(f"Failed to fetch torrent info for {title} in {app_name}")
+    else:
+        print(f"Unexpected data structure from {app_name} API. Expected a list.")
+
