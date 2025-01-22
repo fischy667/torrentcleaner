@@ -5,6 +5,7 @@
 ## Features
 
 - Fetches the list of torrents from **Sonarr**'s queue.
+- Fetches the list of torrents from **Radarr**'s queue.
 - Identifies torrents managed by **Transmission**.
 - Inspects torrent contents to find suspicious file extensions (`.zipx` or `.lnk`).
 - Automatically removes torrents containing suspicious files.
@@ -13,6 +14,7 @@
 ## Requirements
 
 - **Sonarr** API key and URL
+- **Radarr** API key and URL
 - **Transmission** URL and credentials (if required)
 - Python 3.x
 - Python packages: `requests`
@@ -34,8 +36,9 @@
 
 3. Set up your environment variables (or hardcode the values in the script):
     - Sonarr API key
+    - Radarr API key
     - Transmission username and password (if authentication is required)
-    - Hostnames and ports for Sonarr and Transmission
+    - Hostnames and ports for Sonarr, Radarr and Transmission
 
     ```python
     sonarr_host = 'XXXX'  # Update with your actual Sonarr host (e.g., 'localhost', '192.168.1.10', etc.)
@@ -46,6 +49,11 @@
     transmission_url = 'http://XXXX:9091/transmission/rpc'  # Replace with your Transmission host and port
     transmission_username = 'username'  # If Transmission has authentication
     transmission_password = 'password'
+
+    radarr_host = 'localhost'  # Update with your actual Radarr host
+    radarr_port = '7878'  # Update with the actual port where Radarr is running
+    radarr_url = f'http://{radarr_host}:{radarr_port}/api/v3/queue'
+    radarr_api_key = 'XXXX'  # Replace with your actual Radarr API key
     ```
 
 ## Usage
@@ -78,6 +86,20 @@ You can modify the file types that trigger removal by editing the `filename.ends
 ```python
 if filename.endswith('.zipx') or filename.endswith('.lnk'):
 ```
+## Only Require Sonarr or Radarr Support
+
+If you only need radarr or sonarr, you can replace the fetch section in the script:
+
+From:
+for app_name, api_url, api_key in [
+('Sonarr', sonarr_url, sonarr_api_key),
+('Radarr', radarr_url, radarr_api_key)
+]:
+
+To:
+for app_name, api_url, api_key in [
+('Sonarr', sonarr_url, sonarr_api_key)
+]:
 
 ## Contributing
 
