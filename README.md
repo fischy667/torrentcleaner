@@ -88,19 +88,31 @@ if filename.endswith('.zipx') or filename.endswith('.lnk'):
 ```
 ## Only Require Sonarr or Radarr Support
 
-If you only need radarr or sonarr, you can replace the fetch section in the script:
+If you only need radarr or sonarr support, you can replace the fetch section in the script:
 
 From:
+
+```python
 for app_name, api_url, api_key in [
 ('Sonarr', sonarr_url, sonarr_api_key),
 ('Radarr', radarr_url, radarr_api_key)
 ]:
+```
+Sonarr:
 
-To:
+```python
 for app_name, api_url, api_key in [
 ('Sonarr', sonarr_url, sonarr_api_key)
 ]:
+```
 
+Radarr:
+
+```python
+for app_name, api_url, api_key in [
+('Radarr', radarr_url, radarr_api_key)
+]:
+```
 ## Contributing
 
 Feel free to contribute by submitting a pull request or opening an issue. All contributions and suggestions are welcome.
