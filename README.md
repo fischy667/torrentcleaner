@@ -79,6 +79,14 @@ Identified suspicious file: TVShow.S02E08/TVShow.S02E08.zipx. Marking download f
 Successfully removed download XXXX from Sonarr's queue.
 ```
 
+## Transmission vs qBittorent
+
+If you want to use qBittorrent instead of transmission, you will need to change this line
+
+```python
+torrent_client = 'qbittorrent'  # Change to 'qbittorrent' if desired
+```
+
 ## Customization
 
 You can modify the file types that trigger removal by editing the `filename.endswith()` checks in the script:

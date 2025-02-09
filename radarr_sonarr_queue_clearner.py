@@ -1,59 +1,74 @@
 import requests
 import json
 
+#############################################
 # Configuration
-sonarr_host = 'XXXX'  # Update with your actual Sonarr host (e.g., 'localhost', '192.168.1.10', etc.)
-sonarr_port = '8989'  # Update with the actual port where Sonarr is running
-sonarr_url = f'http://{sonarr_host}:{sonarr_port}/api/v3/queue'
-sonarr_api_key = 'XXXX'  # Replace with your actual Sonarr API key
+#############################################
 
-transmission_url = 'http://XXXX:9091/transmission/rpc'  # Replace with your Transmission host and port
-transmission_username = 'username'  # If Transmission has authentication
+# Sonarr configuration
+sonarr_host = 'XXXX'  # e.g., 'localhost' or IP address
+sonarr_port = '8989'
+sonarr_url = f'http://{sonarr_host}:{sonarr_port}/api/v3/queue'
+sonarr_api_key = 'XXXX'
+
+# Radarr configuration
+radarr_host = 'localhost'
+radarr_port = '7878'
+radarr_url = f'http://{radarr_host}:{radarr_port}/api/v3/queue'
+radarr_api_key = 'XXXX'
+
+# Choose torrent client: set to either 'transmission' or 'qbittorrent'
+torrent_client = 'transmission'  # Change to 'qbittorrent' if desired
+
+# Transmission configuration (only used if torrent_client == 'transmission')
+transmission_url = 'http://XXXX:9091/transmission/rpc'
+transmission_username = 'username'
 transmission_password = 'password'
 
-# Configuration for Radarr
-radarr_host = 'localhost'  # Update with your actual Radarr host
-radarr_port = '7878'  # Update with the actual port where Radarr is running
-radarr_url = f'http://{radarr_host}:{radarr_port}/api/v3/queue'
-radarr_api_key = 'XXXX'  # Replace with your actual Radarr API key
+# qBittorrent configuration (only used if torrent_client == 'qbittorrent')
+qbittorrent_url = 'http://XXXX:8080'
+qb_username = 'username'
+qb_password = 'password'
 
-# Function to fetch the download queue for Sonarr or Radarr
+#############################################
+# Functions
+#############################################
+
+# Fetch the download queue from Sonarr/Radarr
 def fetch_queue(api_url, api_key):
     headers = {'X-Api-Key': api_key}
     response = requests.get(api_url, headers=headers)
     return response.json()
 
-# Function to remove and block a download in Sonarr or Radarr
+# Remove (and block) a download via Sonarr/Radarr API
 def remove_and_block_download(api_url, api_key, download_id, block_torrent=False):
     params = {
         'removeFromClient': True,
-        'blocklist': block_torrent,  # Block the torrent if set to True
-        'skipRedownload': True  # If True, skips re-downloading
+        'blocklist': block_torrent,  # Block the torrent if True
+        'skipRedownload': True
     }
-
     delete_url = f'{api_url}/{download_id}'
     headers = {
         'X-Api-Key': api_key,
         'Content-Type': 'application/json'
     }
-
     response = requests.delete(delete_url, headers=headers, params=params)
-    
     if response.status_code == 200:
         print(f"Successfully removed download {download_id} from queue.")
     else:
-        # Print detailed error response for debugging
         print(f"Failed to remove download {download_id}. Response: {response.status_code} - {response.text}")
 
-# Function to get the Transmission session ID (if necessary)
+#############################################
+# Transmission-related functions
+#############################################
+
 def get_transmission_session_id():
     response = requests.post(transmission_url, auth=(transmission_username, transmission_password))
     if 'X-Transmission-Session-Id' in response.headers:
         return response.headers['X-Transmission-Session-Id']
     return None
 
-# Function to get the list of files for a torrent in Transmission
-def get_torrent_files(transmission_session_id, torrent_hash):
+def get_transmission_torrent_files(session_id, torrent_hash):
     payload = {
         "method": "torrent-get",
         "arguments": {
@@ -61,21 +76,20 @@ def get_torrent_files(transmission_session_id, torrent_hash):
             "ids": [torrent_hash]
         }
     }
-
     headers = {
-        'X-Transmission-Session-Id': transmission_session_id,
+        'X-Transmission-Session-Id': session_id,
         'Content-Type': 'application/json'
     }
-
-    response = requests.post(transmission_url, headers=headers, json=payload, auth=(transmission_username, transmission_password))
-    
+    response = requests.post(transmission_url, headers=headers, json=payload,
+                             auth=(transmission_username, transmission_password))
     if response.status_code == 200:
         return response.json().get('arguments', {}).get('torrents', [])
     elif response.status_code == 409:
-        # If we get a 409 error, we need to get a new session ID and retry the request
+        # If session ID expired, refresh and retry
         new_session_id = get_transmission_session_id()
         headers['X-Transmission-Session-Id'] = new_session_id
-        response = requests.post(transmission_url, headers=headers, json=payload, auth=(transmission_username, transmission_password))
+        response = requests.post(transmission_url, headers=headers, json=payload,
+                                 auth=(transmission_username, transmission_password))
         if response.status_code == 200:
             return response.json().get('arguments', {}).get('torrents', [])
         else:
@@ -85,45 +99,99 @@ def get_torrent_files(transmission_session_id, torrent_hash):
         print(f"Error fetching torrent files: {response.text}")
         return None
 
-# Get the initial Transmission session ID
-transmission_session_id = get_transmission_session_id()
+#############################################
+# qBittorrent-related functions
+#############################################
 
-# Fetch and process Sonarr and Radarr queues
+# We’ll use a session to handle authentication cookies
+qb_session = None
+
+def qbittorrent_login():
+    global qb_session
+    qb_session = requests.Session()
+    login_url = f'{qbittorrent_url}/api/v2/auth/login'
+    payload = {'username': qb_username, 'password': qb_password}
+    r = qb_session.post(login_url, data=payload)
+    if r.text != "Ok.":
+        print("Failed to log in to qBittorrent")
+        qb_session = None
+    else:
+        print("Logged in to qBittorrent successfully.")
+
+def get_qbittorrent_torrent_files(torrent_hash):
+    if qb_session is None:
+        print("qBittorrent session is not established.")
+        return None
+    url = f'{qbittorrent_url}/api/v2/torrents/files'
+    params = {'hash': torrent_hash}
+    response = qb_session.get(url, params=params)
+    if response.status_code == 200:
+        # qBittorrent returns a list of file objects
+        return response.json()
+    else:
+        print(f"Error fetching qBittorrent torrent files: {response.text}")
+        return None
+
+#############################################
+# Initialization of the torrent client session
+#############################################
+
+if torrent_client.lower() == 'transmission':
+    transmission_session_id = get_transmission_session_id()
+    if not transmission_session_id:
+        print("Failed to get Transmission session ID.")
+elif torrent_client.lower() == 'qbittorrent':
+    qbittorrent_login()
+
+#############################################
+# Main processing: Check queues and verify torrent file names
+#############################################
+
 for app_name, api_url, api_key in [
     ('Sonarr', sonarr_url, sonarr_api_key),
     ('Radarr', radarr_url, radarr_api_key)
 ]:
     downloads_data = fetch_queue(api_url, api_key)
     downloads = downloads_data.get('records', [])
-
+    
     if isinstance(downloads, list):
-        # Iterate through downloads and get torrent file details from Transmission
         for download in downloads:
-            download_id = download['downloadId']  # This is the torrent hash
+            # The 'downloadId' is assumed to be the torrent hash
+            torrent_hash = download['downloadId']
             title = download['title']
             
-            # Fetch torrent file list from Transmission
-            torrent_files = get_torrent_files(transmission_session_id, download_id)
+            # Get the torrent file list using the chosen client’s API
+            torrent_files = None
+            if torrent_client.lower() == 'transmission':
+                torrent_files = get_transmission_torrent_files(transmission_session_id, torrent_hash)
+            elif torrent_client.lower() == 'qbittorrent':
+                torrent_files = get_qbittorrent_torrent_files(torrent_hash)
             
             if torrent_files:
                 print(f"Checking torrent contents for: {title}")
-                remove_torrent_flag = False  # Flag to indicate if the torrent should be marked for removal
+                remove_torrent_flag = False
 
-                # Check each file in the torrent
-                for torrent in torrent_files:
-                    for file in torrent['files']:
-                        filename = file['name']
-                        
-                        # Check if the file extension is .zipx or .lnk
-                        if filename.endswith('.zipx') or filename.endswith('.lnk') or filename.endswith('.arj'):
+                if torrent_client.lower() == 'transmission':
+                    # For Transmission, the response is a list of torrents with a "files" key.
+                    for torrent in torrent_files:
+                        for file in torrent.get('files', []):
+                            filename = file.get('name', '')
+                            if filename.endswith(('.zipx', '.lnk', '.arj')):
+                                print(f"Identified suspicious file: {filename}. Marking download for removal...")
+                                remove_torrent_flag = True
+                                break
+                        if remove_torrent_flag:
+                            break
+
+                elif torrent_client.lower() == 'qbittorrent':
+                    # For qBittorrent, the API returns a list of file objects directly.
+                    for file in torrent_files:
+                        filename = file.get('name', '')
+                        if filename.endswith(('.zipx', '.lnk', '.arj')):
                             print(f"Identified suspicious file: {filename}. Marking download for removal...")
                             remove_torrent_flag = True
-                            break  # Exit the loop since we found a file to trigger removal
-                    
-                    if remove_torrent_flag:
-                        break
+                            break
 
-                # If a suspicious file was found, remove the torrent and block it
                 if remove_torrent_flag:
                     remove_and_block_download(api_url, api_key, download['id'], block_torrent=True)
             else:
