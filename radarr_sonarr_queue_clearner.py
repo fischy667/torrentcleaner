@@ -103,7 +103,7 @@ def get_transmission_torrent_files(session_id, torrent_hash):
 # qBittorrent-related functions
 #############################################
 
-# We’ll use a session to handle authentication cookies
+# We'll use a session to handle authentication cookies
 qb_session = None
 
 def qbittorrent_login():
@@ -160,7 +160,7 @@ for app_name, api_url, api_key in [
             torrent_hash = download['downloadId']
             title = download['title']
             
-            # Get the torrent file list using the chosen client’s API
+            # Get the torrent file list using the chosen client's API
             torrent_files = None
             if torrent_client.lower() == 'transmission':
                 torrent_files = get_transmission_torrent_files(transmission_session_id, torrent_hash)
