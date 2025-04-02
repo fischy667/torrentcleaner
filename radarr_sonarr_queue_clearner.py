@@ -8,13 +8,13 @@ import json
 # Sonarr configuration
 sonarr_host = 'XXXX'  # e.g., 'localhost' or IP address
 sonarr_port = '8989'
-sonarr_url = f'http://{sonarr_host}:{sonarr_port}/api/v3/queue'
+sonarr_url = f'http://{sonarr_host}:{sonarr_port}/api/v3/queue/details'
 sonarr_api_key = 'XXXX'
 
 # Radarr configuration
 radarr_host = 'localhost'
 radarr_port = '7878'
-radarr_url = f'http://{radarr_host}:{radarr_port}/api/v3/queue'
+radarr_url = f'http://{radarr_host}:{radarr_port}/api/v3/queue/details'
 radarr_api_key = 'XXXX'
 
 # Choose torrent client: set to either 'transmission' or 'qbittorrent'
@@ -152,7 +152,16 @@ for app_name, api_url, api_key in [
     ('Radarr', radarr_url, radarr_api_key)
 ]:
     downloads_data = fetch_queue(api_url, api_key)
-    downloads = downloads_data.get('records', [])
+    downloads = []
+    downloadIds = []
+
+    #Filetring multi-file downloads to check them only once
+
+    for elem in downloads_data:
+        downloadId = elem["downloadId"]
+        if downloadId not in downloadIds:
+            downloads.append(elem)
+            downloadIds.append(downloadId)
     
     if isinstance(downloads, list):
         for download in downloads:
