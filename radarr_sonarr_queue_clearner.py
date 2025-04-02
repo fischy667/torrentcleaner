@@ -155,8 +155,7 @@ for app_name, api_url, api_key in [
     downloads = []
     downloadIds = []
 
-    #Filetring multi-file downloads to check them only once
-
+    #Filtering multi-file downloads to check them only once
     for elem in downloads_data:
         downloadId = elem["downloadId"]
         if downloadId not in downloadIds:
